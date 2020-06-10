@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# Wrapper class for zabbix_sender binary. Implemented as singletone.
+# Wrapper package for zabbix_sender binary. Implemented as singletone.
 # Version 1
 package Zmon::Zsb;
 
@@ -9,6 +9,7 @@ use warnings;
 use Sys::Hostname;
 
 use JSON::PP qw(encode_json);
+use IPC::Run qw( run timeout );
 #DEBUG use Data::Dumper;
 use Zmon::Slog qw(slog sfatal);
 
@@ -31,15 +32,10 @@ sub zbx_send
         sfatal('msg' => "No key or value");
     } 
 
-    my @cmd = ($ZBXSENDER_CMD, '-c', $ZBX_CFG);
-    push @cmd, '-s';
-    push @cmd, $HNAME;
-    push @cmd, '-k';
-    push @cmd, $params{'key'};
-    push @cmd, '-o';
-    push @cmd, $params{'value'};
-
-    my $zsendret = system(@cmd);
+    my $send_string = join(' ', ($HNAME, $params{'key'}, $params{'value'}));
+    my @cmd = ($ZBXSENDER_CMD, '-c', $ZBX_CFG, '-i', '-');
+    my ($out, $err);
+    run \@cmd, \$send_string, \$out, \$err, timeout(30) or sfatal('msg' => "$ZBXSENDER_CMD : $?");    
 }
 
 sub zbx_jsend
