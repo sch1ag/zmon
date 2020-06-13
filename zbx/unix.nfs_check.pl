@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # Script trys to run df for every NFS mountpoint and alert if it fail or hang.
 # Script should run ok on Solaris, AIX, HPUX and Linux with perl installed
-# Version 1
+# Version 2
 
 use strict;
 use warnings;
@@ -19,11 +19,12 @@ use Time::HiRes qw(sleep time);
 use Data::Dumper;
 
 # Parse options
-our ($opt_t, $opt_c, $opt_h);
-getopts('t:ch');
+our ($opt_t, $opt_c, $opt_h, $opt_k);
+getopts('t:chk:');
 if ($opt_h) { usage() };
 my $mode = ($opt_c) ? "collect" : "discover" ;
 my $timeout = ($opt_t) ? $opt_t : 60 ;
+my $metric_key = ($opt_k) ? $opt_k : 'nfsmntcheck' ;
 
 # Get NFS mountpoints
 my $nfsmounts = obtain_nfs_mounts();
@@ -32,7 +33,7 @@ my $nfsmounts = obtain_nfs_mounts();
 if ($mode eq "discover")
 {
     my @templatearr = map { {'{#NFS_NAME}' => $_->[0], '{#NFS_PATH}' => $_->[1]} } @{$nfsmounts};
-    zbx_jsend('key' => 'nfscheck', 'value' => \@templatearr, 'addrunok' => 1, 'wrapdata' => 1);
+    zbx_jsend('key' => $metric_key, 'value' => \@templatearr, 'addrunok' => 1, 'wrapdata' => 1);
     exit 0;
 }
 
@@ -44,7 +45,7 @@ $locker->stay_single_or_die();
 
 my $nfs_health = check_nfs_mountpoints($nfsmounts);
 my @results = map { {'nfsname' => $_, 'nfstime' => $nfs_health->{$_}} } keys %{$nfs_health};
-zbx_jsend('key' => 'nfscheck', 'value' => \@results, 'addrunok' => 1, 'wrapdata' => 1);
+zbx_jsend('key' => $metric_key, 'value' => \@results, 'addrunok' => 1, 'wrapdata' => 1);
 
 # Release lock
 $locker->release();
@@ -104,9 +105,10 @@ print "$0 designed to monitor mounted NFS availability on client using zabbix
 $0 [-c [-t timeout]] | -h
        
         Options:
-        -c           - will run metrics collection [default=discover]
-        -t timeout   - timeout is seconds [default=60 sec]
-        -h           - usage
+        -c            - will run metrics collection [default=discover]
+        -k metric_key - key of metric [default=nfsmntcheck]
+        -t timeout    - timeout is seconds [default=60 sec]
+        -h            - usage
 ";
 exit;
 }
