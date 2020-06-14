@@ -30,10 +30,19 @@ sub zbx_send
     if (! $params{'key'} || ! $params{'value'})
     {
         sfatal('msg' => "No key or value");
-    } 
+    }
 
-    my $send_string = join(' ', ($HNAME, $params{'key'}, $params{'value'}));
-    my @cmd = ($ZBXSENDER_CMD, '-c', $ZBX_CFG, '-i', '-');
+    my @metric = ($HNAME, $params{'key'});
+    my $Toption = '';
+    if ($params{'timestamp'})
+    {
+        push @metric, $params{'timestamp'};
+        $Toption = '-T';
+    };
+    push @metric, $params{'value'};
+    my $send_string = join(' ', @metric);
+
+    my @cmd = ($ZBXSENDER_CMD, '-c', $ZBX_CFG, $Toption, '-i', '-');
     my ($out, $err);
     run \@cmd, \$send_string, \$out, \$err, timeout(30) or sfatal('msg' => "$ZBXSENDER_CMD : $?");    
 }
@@ -61,9 +70,9 @@ sub zbx_jsend
     {
         $data2send = $params{'value'};
     }
-   
-    zbx_send('key' => $params{'key'}, 'value' => encode_json($data2send));
 
+    my $ts = ($params{'timestamp'}) ? $params{'timestamp'} : "";
+    zbx_send('key' => $params{'key'}, 'value' => encode_json($data2send), 'timestamp' => $ts);
 }
 
 sub _get_first_exist_file
