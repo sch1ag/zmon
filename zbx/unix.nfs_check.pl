@@ -102,7 +102,7 @@ sub check_nfs_mountpoints
 
 sub usage {
 print "$0 designed to monitor mounted NFS availability on client using zabbix
-$0 [-c [-t timeout]] | -h
+$0 [-c [-t timeout]] [-k metric_name] | -h
        
         Options:
         -c            - will run metrics collection [default=discover]
