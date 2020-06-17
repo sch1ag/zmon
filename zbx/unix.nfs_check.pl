@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # Script trys to run df for every NFS mountpoint and alert if it fail or hang.
 # Script should run ok on Solaris, AIX, HPUX and Linux with perl installed
-# Version 2
+# Version 3
 
 use strict;
 use warnings;
@@ -19,12 +19,14 @@ use Time::HiRes qw(sleep time);
 use Data::Dumper;
 
 # Parse options
-our ($opt_t, $opt_c, $opt_h, $opt_k);
-getopts('t:chk:');
+our ($opt_t, $opt_c, $opt_h, $opt_k, $opt_z);
+getopts('t:chk:z:');
 if ($opt_h) { usage() };
+if ($opt_z) { set_custom_zcfg($opt_z) };
 my $mode = ($opt_c) ? "collect" : "discover" ;
 my $timeout = ($opt_t) ? $opt_t : 60 ;
-my $metric_key = ($opt_k) ? $opt_k : 'nfsmntcheck' ;
+my $metric_key = ($opt_k) ? $opt_k : ($mode eq "collect") ? 'nfsmntcheck' : 'nfsmntcheck_lld' ;
+
 
 # Get NFS mountpoints
 my $nfsmounts = obtain_nfs_mounts();
@@ -102,12 +104,13 @@ sub check_nfs_mountpoints
 
 sub usage {
 print "$0 designed to monitor mounted NFS availability on client using zabbix
-$0 [-c [-t timeout]] [-k metric_name] | -h
+$0 [-c [-t timeout]] [-k metric_name] [-z zcfg_file] | -h
        
         Options:
         -c            - will run metrics collection [default=discover]
-        -k metric_key - key of metric [default=nfsmntcheck]
+        -k metric_key - key of metric [default: nfsmntcheck for collection, nfsmntcheck_lld for discovery]
         -t timeout    - timeout is seconds [default=60 sec]
+        -z zcfg_file  - zabbix config to use with zabbix_sender [default is to use first exist file of the list /etc/opt/zabbix-agent/zabbix_agentd.conf, /etc/zabbix/zabbix_agentd.conf]
         -h            - usage
 ";
 exit;

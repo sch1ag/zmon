@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # Wrapper package for zabbix_sender binary. Implemented as singletone.
-# Version 3
+# Version 4
 package Zmon::Zsb;
 
 use vars;
@@ -15,7 +15,7 @@ use IPC::Run qw( run timeout harness );
 use Zmon::Slog qw(slog sfatal);
 
 use Exporter qw(import);
-our @EXPORT = qw(zbx_send zbx_jsend);
+our @EXPORT = qw(zbx_send zbx_jsend set_custom_zcfg);
 
 my @senders = ('/opt/zabbix-agent/bin/zabbix_sender', '/usr/bin/zabbix_sender', '/opt/freeware/bin/zabbix_sender');
 my @configs = ('/etc/opt/zabbix-agent/zabbix_agentd.conf', '/etc/zabbix/zabbix_agentd.conf');
@@ -62,6 +62,7 @@ sub zbx_send
     if (! $run_ok)
     {
         slog(msg => "zabbix_sender rc: " . $h->result);
+        slog(msg => "zabbix_sender $sender_input content: $send_string");
         slog(msg => "zabbix_sender stderr: $err");
         slog(msg => "zabbix_sender stdout: $out");
         slog(msg => "zabbix_sender cmd: " . join(' ', @cmd));
@@ -96,6 +97,20 @@ sub zbx_jsend
 
     my $ts = ($params{'timestamp'}) ? $params{'timestamp'} : "";
     zbx_send('key' => $params{'key'}, 'value' => encode_json($data2send), 'timestamp' => $ts);
+}
+
+sub set_custom_zcfg
+{
+    my $new_cfg = shift;
+    if ( -e $new_cfg )
+    {
+        $ZBX_CFG = $new_cfg;
+        $HNAME = _get_zbx_hostname($ZBX_CFG);
+    }
+    else
+    {
+        sfatal(msg => "File $new_cfg does not exist");
+    }
 }
 
 sub _get_first_exist_file
