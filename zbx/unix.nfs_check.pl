@@ -178,6 +178,6 @@ sub get_first_exist_file
 {
     my $filevariants = shift;
     grep { -e $_ && return $_ } @{$filevariants};
-    die "There is no existing file in the list: " . join(', ', @{$filevariants});
+    sfatal('msg' => "There is no existing file in the list: " . join(', ', @{$filevariants}));
 }
 
