@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # Script trys to run df for every NFS mountpoint and alert if it fail or hang.
 # Script should run ok on Solaris, AIX, HPUX and Linux with perl installed
-# Version 3
+# Version 4
 
 use strict;
 use warnings;
@@ -19,34 +19,22 @@ use Time::HiRes qw(sleep time);
 use Data::Dumper;
 
 # Parse options
-our ($opt_t, $opt_c, $opt_h, $opt_k, $opt_z);
-getopts('t:chk:z:');
+our ($opt_t, $opt_c, $opt_h, $opt_k);
+getopts('t:k:c:h');
 if ($opt_h) { usage() };
-if ($opt_z) { set_custom_zcfg($opt_z) };
-my $mode = ($opt_c) ? "collect" : "discover" ;
+if ($opt_c) { set_custom_zcfg($opt_c) };
 my $timeout = ($opt_t) ? $opt_t : 60 ;
-my $metric_key = ($opt_k) ? $opt_k : ($mode eq "collect") ? 'nfsmntcheck' : 'nfsmntcheck_lld' ;
-
-
-# Get NFS mountpoints
-my $nfsmounts = obtain_nfs_mounts();
-
-# Discover part is done. Print json and exit.
-if ($mode eq "discover")
-{
-    my @templatearr = map { {'{#NFS_NAME}' => $_->[0], '{#NFS_PATH}' => $_->[1]} } @{$nfsmounts};
-    zbx_jsend('key' => $metric_key, 'value' => \@templatearr, 'addrunok' => 1, 'wrapdata' => 1);
-    exit 0;
-}
-
-# Metrics collection part
+my $metric_key = ($opt_k) ? $opt_k : 'nfsmntcheck';
 
 # Check that no any other instance of this script currently running on the system.
 my $locker = Zmon::Flocker->new();
 $locker->stay_single_or_die();
 
+# Get NFS mountpoints
+my $nfsmounts = obtain_nfs_mounts();
+
 my $nfs_health = check_nfs_mountpoints($nfsmounts);
-my @results = map { {'nfsname' => $_, 'nfstime' => $nfs_health->{$_}} } keys %{$nfs_health};
+my @results = map { {'nfs_name' => $_, 'nfs_path' => $nfsmounts->{$_}, 'nfstime' => $nfs_health->{$_}} } keys %{$nfs_health};
 zbx_jsend('key' => $metric_key, 'value' => \@results, 'addrunok' => 1, 'wrapdata' => 1);
 
 # Release lock
@@ -57,7 +45,7 @@ sub check_nfs_mountpoints
     my $nfs_mounts = shift;
     # Run df for every NFS mountpoint in background
     my $DF_CMD = "/usr/bin/df";
-    my %checkers = map { $_->[0] => Proc::Background->new("$DF_CMD $_->[0]") } @{$nfs_mounts};
+    my %checkers = map { $_ => Proc::Background->new("$DF_CMD $_") } keys %{$nfs_mounts};
     
     # Wait for completion or timeout
     my %result;
@@ -104,13 +92,12 @@ sub check_nfs_mountpoints
 
 sub usage {
 print "$0 designed to monitor mounted NFS availability on client using zabbix
-$0 [-c [-t timeout]] [-k metric_name] [-z zcfg_file] | -h
+$0 [-t timeout] [-k metric_name] [-c zcfg_file] | -h
        
         Options:
-        -c            - will run metrics collection [default=discover]
-        -k metric_key - key of metric [default: nfsmntcheck for collection, nfsmntcheck_lld for discovery]
+        -k metric_key - key of metric [default: nfsmntcheck]
         -t timeout    - timeout is seconds [default=60 sec]
-        -z zcfg_file  - zabbix config to use with zabbix_sender [default is to use first exist file of the list /etc/opt/zabbix-agent/zabbix_agentd.conf, /etc/zabbix/zabbix_agentd.conf]
+        -c zcfg_file  - zabbix config to use with zabbix_sender [default is to use first exist file of the list /etc/opt/zabbix-agent/zabbix_agentd.conf, /etc/zabbix/zabbix_agentd.conf]
         -h            - usage
 ";
 exit;
@@ -119,7 +106,7 @@ exit;
 sub filter_nfs_mntpts
 {
     my $mntpts_shares = shift;
-    my @mntpts_shares_ret;
+    my %mntpts_shares_ret;
     #exclude shares mounted in child zones
     if ($^O eq "solaris")
     {
@@ -135,12 +122,11 @@ sub filter_nfs_mntpts
         }
         #print Dumper(\@zroots);
 
-        for my $mntpt_share (@{$mntpts_shares})
+        for my $mntpt_share (keys %{$mntpts_shares})
         {
-            if (! grep { index($mntpt_share->[0], $_) == 0 } @zroots) {push @mntpts_shares_ret, $mntpt_share};
-            #print Dumper(\@shareinzroot);
+            if (! grep { index($mntpt_share, $_) == 0 } @zroots) {$mntpts_shares_ret{$mntpt_share} = $mntpts_shares->{$mntpt_share}};
         }
-        return \@mntpts_shares_ret
+        return \%mntpts_shares_ret
     }
     else
     {
@@ -151,24 +137,24 @@ sub filter_nfs_mntpts
 # Function: obtain_nfs_mounts
 # Purpose: return list of nfs mounts
 # Arguments: nothing
-# Return value: Array of arrays. Each inner array contain two elements, where zero element is mountpoint, first element - nfs server and share.
+# Return value: Hash where key is a mountpoint, value - nfs server and share.
 sub obtain_nfs_mounts
 {
     my $NFSSTAT_CMD = get_first_exist_file(['/usr/bin/nfsstat', '/usr/sbin/nfsstat']);
-    my @nfs_mntpts_shares;
+    my %nfs_mntpts_shares;
     my @nfsstatout = `$NFSSTAT_CMD -m`;
     for my $line (@nfsstatout)
     {
         if (my ($mntpt, $share) = ($line =~ /^(\/[\d\w\-\.\/_:]+)\s+from\s+([\d\w\-\.\/_:]+)/))
         {
             #print "$mntpt $share\n";
-            push @nfs_mntpts_shares, [$mntpt, $share];
+            $nfs_mntpts_shares{$mntpt} = $share;
         }
     }
     #print Dumper(\@nfs_mntpts_shares);
 
     #Filter out unneeded mountpoints
-    my $nfs_mntpts_shares_filtered = filter_nfs_mntpts(\@nfs_mntpts_shares);
+    my $nfs_mntpts_shares_filtered = filter_nfs_mntpts(\%nfs_mntpts_shares);
     #print Dumper($nfs_mntpts_shares_filtered);
     return $nfs_mntpts_shares_filtered
 }
