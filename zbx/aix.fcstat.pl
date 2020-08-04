@@ -79,18 +79,18 @@ sub make_diff
     my @key_type_name = (
         ['running_speed',     'raw',  'running_speed_Gbps' ],
         ['secs_since_reset',  'diff', 'interval_secs'      ],
-        ['link_fail_cnt',     'diff', 'link_fail/i'        ],
-        ['loss_of_sync_cnt',  'diff', 'loss_of_sync/i'     ],
-        ['loss_of_signal',    'diff', 'loss_of_signal/i'   ],
-        ['inv_tx_word_cnt',   'diff', 'inv_tx_word/i'      ],
-        ['inv_crc_cnt',       'diff', 'inv_crc/i'          ],
-        ['no_dma_res_cnt',    'diff', 'no_dma_res/i'       ],
-        ['no_adapt_elem_cnt', 'diff', 'no_adapt_elem/i'    ],
-        ['no_cmd_res_cnt',    'diff', 'no_cmd_res/i'       ],
-        ['in_req',            'rate', 'in_req/s'           ],
-        ['out_req',           'rate', 'out_req/s'          ],
-        ['in_bytes',          'rate', 'in_bytes/s'         ],
-        ['out_bytes',         'rate', 'out_bytes/s'        ]
+        ['link_fail_cnt',     'diff', 'link_fail_pi'       ],
+        ['loss_of_sync_cnt',  'diff', 'loss_of_sync_pi'    ],
+        ['loss_of_signal',    'diff', 'loss_of_signal_pi'  ],
+        ['inv_tx_word_cnt',   'diff', 'inv_tx_word_pi'     ],
+        ['inv_crc_cnt',       'diff', 'inv_crc_pi'         ],
+        ['no_dma_res_cnt',    'diff', 'no_dma_res_pi'      ],
+        ['no_adapt_elem_cnt', 'diff', 'no_adapt_elem_pi'   ],
+        ['no_cmd_res_cnt',    'diff', 'no_cmd_res_pi'      ],
+        ['in_req',            'rate', 'in_req_ps'          ],
+        ['out_req',           'rate', 'out_req_ps'         ],
+        ['in_bytes',          'rate', 'in_bytes_ps'        ],
+        ['out_bytes',         'rate', 'out_bytes_ps'       ]
     );
 
     my %result;    
