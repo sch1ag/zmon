@@ -33,7 +33,7 @@ my $locker = Zmon::Flocker->new();
 $locker->stay_single_or_die();
 
 # Define file to store statistics between runs
-my $datapath = '/tmp/' . $Script . '.' . '.zdata';
+my $datapath = '/tmp/' . $Script . '.zdata';
 
 # Get fcs instances
 my $fcses = obtain_fcs();
