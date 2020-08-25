@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 # Script for posting fcstat data to Zabbix
 # Script should run ok on AIX with perl installed
-# Version 1
+# Version 2
 
 use strict;
 use warnings;
@@ -133,13 +133,15 @@ sub add_bw_util_perc
     my $data = shift;
     $data->{'in_bw_util_perc'} = 0;
     $data->{'out_bw_util_perc'} = 0;
-    #1342177.28 = 1024^3 / 8 / 100
-
+    #In fc world 1 Gbps link speed equal to 100 MB/s payload speed 
+    #So bw_util_perc = bytes_ps / (running_speed_Gbps * 100 * 1024^2) * 100 = bytes_ps / running_speed_Gbps / 1048576
+ 
     if ($data->{'running_speed_Gbps'} > 0)
     {
-        ($data->{'in_bytes_ps'} > 0) && $data->{'in_bw_util_perc'} = $data->{'in_bytes_ps'} / $result{'running_speed_Gbps'} / 1342177;
-        ($data->{'out_bytes_ps'} > 0) && $data->{'out_bw_util_perc'} = $data->{'out_bytes_ps'} / $result{'running_speed_Gbps'} / 1342177;
+        if ($data->{'in_bytes_ps'} > 0) {$data->{'in_bw_util_perc'} = sprintf("%d", $data->{'in_bytes_ps'} / $data->{'running_speed_Gbps'} / 1048576)};
+        if ($data->{'out_bytes_ps'} > 0) {$data->{'out_bw_util_perc'} = sprintf("%d", $data->{'out_bytes_ps'} / $data->{'running_speed_Gbps'} / 1048576)};
     }
+    return 1;
 }
 
 #check that value of a key is defined and it is a non-negative number
@@ -159,6 +161,7 @@ sub save_data
     my $json_text = encode_json($data);
     print $fh $json_text ;
     close($fh);
+    return 1;
 }
 
 sub slurp {
