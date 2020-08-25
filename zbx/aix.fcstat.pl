@@ -123,7 +123,23 @@ sub make_diff
             }
         }
     }
+
+    add_bw_util_perc(\%result);
     return \%result;
+}
+
+sub add_bw_util_perc
+{
+    my $data = shift;
+    $data->{'in_bw_util_perc'} = 0;
+    $data->{'out_bw_util_perc'} = 0;
+    #1342177.28 = 1024^3 / 8 / 100
+
+    if ($data->{'running_speed_Gbps'} > 0)
+    {
+        ($data->{'in_bytes_ps'} > 0) && $data->{'in_bw_util_perc'} = $data->{'in_bytes_ps'} / $result{'running_speed_Gbps'} / 1342177;
+        ($data->{'out_bytes_ps'} > 0) && $data->{'out_bw_util_perc'} = $data->{'out_bytes_ps'} / $result{'running_speed_Gbps'} / 1342177;
+    }
 }
 
 #check that value of a key is defined and it is a non-negative number
