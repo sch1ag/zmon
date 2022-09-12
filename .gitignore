@@ -1,4 +1,5 @@
 old
 zbx/t.pl
 su/solaris.check_retire.pl
-
+*.pyc
+zbx/linux.blkstat.running.py
