@@ -1,4 +1,8 @@
 old
 zbx/t.pl
 su/solaris.check_retire.pl
-
+*.pyc
+zbx/linux.blkstat.running.py
+zmon.zip
+lib/pyzmon/sleepyhead.py
+lib/pyzmon/stopper.py
