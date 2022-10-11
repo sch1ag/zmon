@@ -23,10 +23,6 @@ class ZmonCfg:
         self._cfg_file = os.path.join(self._zmon_basedir, 'etc', self.scriptname + '.json')
 
         self.cfg = {
-            'DISABLE_FILES': [os.path.join(self._zmon_basedir, 'etc', self.scriptname + '.disable'),
-                              str(self.script_pathname) + '.off'],
-            'INTERVAL': 60,
-            'MAXAGE': 1512000 #30 days
             }    
 
         self.mk_cfg(cfg)
