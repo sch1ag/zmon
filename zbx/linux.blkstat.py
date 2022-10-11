@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-#version 1
+#version 1.1
 from __future__ import division
 import subprocess
 import re
@@ -177,7 +177,7 @@ class GroupStats:
                 else:
                     statgroup_data[i] += v
         else:
-            self.stat_by_groups[statgroup] = dev_stat_diff
+            self.stat_by_groups[statgroup] = list(dev_stat_diff)
             
     def calclate_stats(self, time_diff):
         result_stat_by_group = {}
@@ -367,7 +367,13 @@ if __name__ == '__main__':
     stats_by_group = grp_stats.calclate_stats(blk_stats.time_diff)
 
     #pprint.pprint(blk_dev_grps.kname2groups)
+          
+    objdata['blk_stats'] = blk_stats.save_to_dict()
+    objdata['blk_dev_grps'] = blk_dev_grps.save_to_dict()
         
+    with open(data_path, 'w') as outfile:
+        json.dump(objdata, outfile)
+    
     result = {'RUNOK': 1}
     data = []
     for dev_grp in stats_by_group:
@@ -375,13 +381,10 @@ if __name__ == '__main__':
         data.append(stats_by_group[dev_grp])
     if data:
         result['data'] = data
-    print(json.dumps(result))
-
-    #pprint.pprint(result)    
-    objdata['blk_stats'] = blk_stats.save_to_dict()
-    objdata['blk_dev_grps'] = blk_dev_grps.save_to_dict()
+    
+    #dirty hack for old json version
+    if sys.version_info.major == 2 and sys.version_info.minor < 7:
+        from json import encoder
+        encoder.FLOAT_REPR = lambda o: format(o, '.2f')
         
-    with open(data_path, 'w') as outfile:
-        json.dump(objdata, outfile)
-    
-    
+    print(json.dumps(result))
