@@ -10,7 +10,7 @@ import time
 import argparse
 import json
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'lib'))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'lib'))
 from pyzmon.zmoncfg import getcfg
 from pyzmon.slog import (slog, sfatal)
 

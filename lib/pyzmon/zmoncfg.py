@@ -17,7 +17,7 @@ def getcfg(script_pathname=None, cfg=None):
 
 class ZmonCfg:
     def __init__(self, script_pathname=None, cfg=None):
-        self.script_pathname = script_pathname
+        self.script_pathname = os.path.abspath(script_pathname)
         self._dirname, self.scriptname = os.path.split(script_pathname)
         self._zmon_basedir = os.path.dirname(self._dirname)
         self._cfg_file = os.path.join(self._zmon_basedir, 'etc', self.scriptname + '.json')
